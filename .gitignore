@@ -3,6 +3,8 @@
 *.dll
 *.so
 *.dylib
+chip8
+*.vscode
 
 # Test binary, build with `go test -c`
 *.test
