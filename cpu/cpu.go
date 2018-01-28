@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	programStartPosition   = 0x200
+	// ProgramStartPosition initial value of pc
+	ProgramStartPosition   = 0x200
 	programEndPosition     = 0xFFF
 	interpreterEndPosition = 0x1FF
 )
@@ -26,7 +27,7 @@ type CPU struct {
 
 // Init sets the initial values of the registers
 func (c *CPU) Init() {
-	c.pc = programStartPosition
+	c.pc = ProgramStartPosition
 	c.i = 0
 	c.sp = 0
 }

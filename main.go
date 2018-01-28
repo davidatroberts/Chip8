@@ -3,6 +3,7 @@ package main
 import (
 	"chip8/cpu"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -99,7 +100,9 @@ func main() {
 		}
 
 		// execute a single CPU cycle
-		cpu.ExecuteIteration()
+		if err := cpu.ExecuteIteration(); err != nil {
+			log.Printf("CPU error: %v", err)
+		}
 
 		// update the buffer
 		texture.Update(nil, pixels, 320*4)
