@@ -172,3 +172,183 @@ func TestSetVX(t *testing.T) {
 		t.Errorf("Expected v[5]: %x, got v[5]: %x", 0x11, c.v[5])
 	}
 }
+
+func TestAddVXPlusKK(t *testing.T) {
+	c := CPU{}
+	c.Init()
+
+	opcode := 0x7721
+	c.memory[c.pc] = byte(opcode >> 8)
+	c.memory[c.pc+1] = byte(opcode & 0xFF)
+
+	c.v[7] = 7
+
+	// run
+	if err := c.ExecuteIteration(); err != nil {
+		t.Errorf("CPU error: %v", err)
+	}
+
+	// expected
+	if c.pc != ProgramStartPosition+2 {
+		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
+	}
+	if c.v[7] != 40 {
+		t.Errorf("Expected v[7]: %x, got v[7]: %x", 40, c.v[7])
+	}
+}
+
+func TestSetVXEqualsVY(t *testing.T) {
+	c := CPU{}
+	c.Init()
+
+	opcode := 0x89A0
+	c.memory[c.pc] = byte(opcode >> 8)
+	c.memory[c.pc+1] = byte(opcode & 0xFF)
+
+	c.v[9] = 13
+	c.v[0xA] = 44
+
+	// run
+	if err := c.ExecuteIteration(); err != nil {
+		t.Errorf("CPU error: %v", err)
+	}
+
+	// expected
+	if c.pc != ProgramStartPosition+2 {
+		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
+	}
+	if c.v[9] != c.v[0xA] {
+		t.Errorf("Expected v[9]: %x, got v[9]: %x", c.v[0xA], c.v[9])
+	}
+	if c.v[9] != 44 {
+		t.Errorf("Expected v[9]: %x, got v[9]: %x", 44, c.v[9])
+	}
+}
+
+func TestSetVXEqualsVXOrVY(t *testing.T) {
+	c := CPU{}
+	c.Init()
+
+	opcode := 0x8011
+	c.memory[c.pc] = byte(opcode >> 8)
+	c.memory[c.pc+1] = byte(opcode & 0xFF)
+
+	c.v[0] = 1
+	c.v[1] = 2
+
+	// run
+	if err := c.ExecuteIteration(); err != nil {
+		t.Errorf("CPU error: %v", err)
+	}
+
+	// expected
+	if c.pc != ProgramStartPosition+2 {
+		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
+	}
+	if c.v[0] != 3 {
+		t.Errorf("Expected v[0]: %x, got v[0]: %x", 3, c.v[0])
+	}
+}
+
+func TestSetVXEqualsVXAndVY(t *testing.T) {
+	c := CPU{}
+	c.Init()
+
+	opcode := 0x8102
+	c.memory[c.pc] = byte(opcode >> 8)
+	c.memory[c.pc+1] = byte(opcode & 0xFF)
+
+	c.v[1] = 1
+	c.v[0] = 0
+
+	// run
+	if err := c.ExecuteIteration(); err != nil {
+		t.Errorf("CPU error: %v", err)
+	}
+
+	// expected
+	if c.pc != ProgramStartPosition+2 {
+		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
+	}
+	if c.v[1] != 0 {
+		t.Errorf("Expected v[1]: %x, got v[1]: %x", 0, c.v[1])
+	}
+
+	c.Init()
+	c.v[1] = 1
+	c.v[0] = 1
+
+	// run
+	if err := c.ExecuteIteration(); err != nil {
+		t.Errorf("CPU error: %v", err)
+	}
+
+	// expected
+	if c.pc != ProgramStartPosition+2 {
+		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
+	}
+	if c.v[1] != 1 {
+		t.Errorf("Expected v[1]: %x, got v[1]: %x", 1, c.v[1])
+	}
+}
+
+func TestVXEqualsVXXorVY(t *testing.T) {
+	c := CPU{}
+	c.Init()
+
+	opcode := 0x8013
+	c.memory[c.pc] = byte(opcode >> 8)
+	c.memory[c.pc+1] = byte(opcode & 0xFF)
+
+	c.v[0] = 1
+	c.v[1] = 0
+
+	// run
+	if err := c.ExecuteIteration(); err != nil {
+		t.Errorf("CPU error: %v", err)
+	}
+
+	// expected
+	if c.pc != ProgramStartPosition+2 {
+		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
+	}
+	if c.v[0] != 1 {
+		t.Errorf("Expected v[0]: %x, got v[0]: %x", 1, c.v[0])
+	}
+
+	c.Init()
+	c.v[0] = 1
+	c.v[1] = 1
+
+	// run
+	if err := c.ExecuteIteration(); err != nil {
+		t.Errorf("CPU error: %v", err)
+	}
+
+	if c.pc != ProgramStartPosition+2 {
+		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
+	}
+	if c.v[0] != 0 {
+		t.Errorf("Expected v[0]: %x, got v[0]: %x", 0, c.v[0])
+	}
+
+	c.Init()
+	c.v[0] = 0
+	c.v[1] = 0
+
+	// run
+	if err := c.ExecuteIteration(); err != nil {
+		t.Errorf("CPU error: %v", err)
+	}
+
+	if c.pc != ProgramStartPosition+2 {
+		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
+	}
+	if c.v[0] != 0 {
+		t.Errorf("Expected v[0]: %x, got v[0]: %x", 0, c.v[0])
+	}
+}
+
+func TestVXEqualsVXPlusVYCarry(t *testing.T) {
+
+}
