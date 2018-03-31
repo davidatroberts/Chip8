@@ -25,6 +25,12 @@ func checkRegister(t *testing.T, c *CPU, reg int, value byte) {
 	}
 }
 
+func checkI(t *testing.T, c *CPU, value uint16) {
+	if c.i != value {
+		t.Errorf("Expected i: %x, got: %x", value, c.i)
+	}
+}
+
 func TestJumpToAddress(t *testing.T) {
 	c := CPU{}
 	c.Init()
@@ -33,6 +39,17 @@ func TestJumpToAddress(t *testing.T) {
 	execute(t, &c)
 
 	checkPC(t, &c, 0x0500)
+}
+
+func TestJumpToAddressPlusV0(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xB010, &c)
+	c.v[0] = 7
+
+	execute(t, &c)
+
+	checkPC(t, &c, 0x0017)
 }
 
 func TestSkipNextEqualsSkip(t *testing.T) {
@@ -359,4 +376,14 @@ func TestSkipNextVXNotEqualVY(t *testing.T) {
 
 	checkPC(t, &c, ProgramStartPosition+2)
 
+}
+
+func TestSetIToAddr(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xA00F, &c)
+
+	execute(t, &c)
+
+	checkI(t, &c, 0x000F)
 }
