@@ -87,7 +87,6 @@ func (c *CPU) ExecuteIteration() error {
 		c.v[x] += nn
 		c.pc += 2
 	case 0x8000:
-		// TODO Vx/Vy register stuff
 		x := (opcode & 0x0F00) >> 8
 		y := (opcode & 0x00F0) >> 4
 		switch opcode & 0x000F {
@@ -110,7 +109,7 @@ func (c *CPU) ExecuteIteration() error {
 			} else {
 				c.v[0xF] = 0
 			}
-			c.v[x] += c.v[y]
+			c.v[x] += c.v[y] % 255
 		case 0x0005:
 			// set v[x] = v[x] - v[y], set v[F] = NOT borrow
 			if c.v[x] > c.v[y] {
@@ -126,7 +125,7 @@ func (c *CPU) ExecuteIteration() error {
 			c.v[x] = c.v[y]
 		case 0x0007:
 			// set v[x] = v[y] - v[x], set v[F] = NOT borrow.
-			if c.v[x] > c.v[y] {
+			if c.v[y] > c.v[x] {
 				c.v[0xF] = 1
 			} else {
 				c.v[0xF] = 0
@@ -134,7 +133,7 @@ func (c *CPU) ExecuteIteration() error {
 			c.v[x] = c.v[y] - c.v[x]
 		case 0x000E:
 			// set v[x] = v[y] SHL 1.
-			c.v[0xF] = c.v[y] & 0x80
+			c.v[0xF] = (c.v[y] & 0x80) >> 7
 			c.v[y] = c.v[y] << 1
 			c.v[x] = c.v[y]
 		}
@@ -142,7 +141,7 @@ func (c *CPU) ExecuteIteration() error {
 	case 0x9000:
 		// skip next instruction if v[x] != v[y]
 		x := (opcode & 0x0F00) >> 8
-		y := (opcode & 0x00F0) >> 8
+		y := (opcode & 0x00F0) >> 4
 		if c.v[x] != c.v[y] {
 			c.pc += 4
 		} else {

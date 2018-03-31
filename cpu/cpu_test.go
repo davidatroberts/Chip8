@@ -2,353 +2,361 @@ package cpu
 
 import "testing"
 
-func TestJumpToAddress(t *testing.T) {
-	c := CPU{}
-	c.Init()
-
-	opcode := 0x1500
+func setOpcode(opcode int, c *CPU) {
 	c.memory[c.pc] = byte(opcode >> 8)
 	c.memory[c.pc+1] = byte(opcode & 0xFF)
+}
 
-	// run
+func execute(t *testing.T, c *CPU) {
 	if err := c.ExecuteIteration(); err != nil {
 		t.Errorf("CPU error: %v", err)
 	}
+}
 
-	// expected
-	if c.pc != 0x0500 {
-		t.Errorf("Expected: %x got: %x", 0x0500, c.pc)
+func checkPC(t *testing.T, c *CPU, value uint16) {
+	if c.pc != value {
+		t.Errorf("Expected: %x got: %x", value, c.pc)
 	}
+}
+
+func checkRegister(t *testing.T, c *CPU, reg int, value byte) {
+	if c.v[reg] != value {
+		t.Errorf("Expected v[%d]: %x, got v[%d]: %x", reg, value, reg, c.v[reg])
+	}
+}
+
+func TestJumpToAddress(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0x1500, &c)
+
+	execute(t, &c)
+
+	checkPC(t, &c, 0x0500)
 }
 
 func TestSkipNextEqualsSkip(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x3110
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x3110, &c)
 	c.v[1] = 16
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+4 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+4, c.pc)
-	}
+	checkPC(t, &c, ProgramStartPosition+4)
 }
 
 func TestSkipNextEqualsNotSkip(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x3110
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x3110, &c)
 	c.v[1] = 15
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+4, c.pc)
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
 }
 
 func TestSkipNextNotEqualsSkip(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x4203
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x4203, &c)
 	c.v[2] = 4
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+4 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+4, c.pc)
-	}
+	checkPC(t, &c, ProgramStartPosition+4)
 }
 
 func TestSkipNextNotEqualsNotSkip(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x4203
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x4203, &c)
 	c.v[2] = 3
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// exected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
 }
 
 func TestSkipVXEqualsVYSkip(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x5120
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x5120, &c)
 	c.v[1] = 128
 	c.v[2] = 128
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+4 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+4, c.pc)
-	}
+	checkPC(t, &c, ProgramStartPosition+4)
 }
 
 func TestSkipVXEqualsVYNotSkip(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x5340
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x5340, &c)
 	c.v[3] = 64
 	c.v[4] = 128
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
 }
 
 func TestSetVX(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x6511
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x6511, &c)
 	c.v[5] = 5
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
-	if c.v[5] != 0x11 {
-		t.Errorf("Expected v[5]: %x, got v[5]: %x", 0x11, c.v[5])
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 5, 0x11)
 }
 
 func TestAddVXPlusKK(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x7721
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x7721, &c)
 	c.v[7] = 7
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
-	if c.v[7] != 40 {
-		t.Errorf("Expected v[7]: %x, got v[7]: %x", 40, c.v[7])
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 7, 40)
 }
 
 func TestSetVXEqualsVY(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x89A0
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x89A0, &c)
 	c.v[9] = 13
 	c.v[0xA] = 44
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
-	if c.v[9] != c.v[0xA] {
-		t.Errorf("Expected v[9]: %x, got v[9]: %x", c.v[0xA], c.v[9])
-	}
-	if c.v[9] != 44 {
-		t.Errorf("Expected v[9]: %x, got v[9]: %x", 44, c.v[9])
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 9, c.v[0xA])
+	checkRegister(t, &c, 9, 44)
 }
 
 func TestSetVXEqualsVXOrVY(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x8011
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x8011, &c)
 	c.v[0] = 1
 	c.v[1] = 2
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
-	if c.v[0] != 3 {
-		t.Errorf("Expected v[0]: %x, got v[0]: %x", 3, c.v[0])
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 3)
 }
 
 func TestSetVXEqualsVXAndVY(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x8102
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x8102, &c)
 	c.v[1] = 1
 	c.v[0] = 0
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
-	if c.v[1] != 0 {
-		t.Errorf("Expected v[1]: %x, got v[1]: %x", 0, c.v[1])
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 1, 0)
 
 	c.Init()
 	c.v[1] = 1
 	c.v[0] = 1
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
-	if c.v[1] != 1 {
-		t.Errorf("Expected v[1]: %x, got v[1]: %x", 1, c.v[1])
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 1, 1)
 }
 
 func TestVXEqualsVXXorVY(t *testing.T) {
 	c := CPU{}
 	c.Init()
-
-	opcode := 0x8013
-	c.memory[c.pc] = byte(opcode >> 8)
-	c.memory[c.pc+1] = byte(opcode & 0xFF)
-
+	setOpcode(0x8013, &c)
 	c.v[0] = 1
 	c.v[1] = 0
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	// expected
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
-	if c.v[0] != 1 {
-		t.Errorf("Expected v[0]: %x, got v[0]: %x", 1, c.v[0])
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 1)
 
 	c.Init()
 	c.v[0] = 1
 	c.v[1] = 1
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
-	if c.v[0] != 0 {
-		t.Errorf("Expected v[0]: %x, got v[0]: %x", 0, c.v[0])
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 0)
 
 	c.Init()
 	c.v[0] = 0
 	c.v[1] = 0
 
-	// run
-	if err := c.ExecuteIteration(); err != nil {
-		t.Errorf("CPU error: %v", err)
-	}
+	execute(t, &c)
 
-	if c.pc != ProgramStartPosition+2 {
-		t.Errorf("Expected pc: %x got pc: %x", ProgramStartPosition+2, c.pc)
-	}
-	if c.v[0] != 0 {
-		t.Errorf("Expected v[0]: %x, got v[0]: %x", 0, c.v[0])
-	}
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 0)
 }
 
 func TestVXEqualsVXPlusVYCarry(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0x8014, &c)
+	c.v[0] = 5
+	c.v[1] = 20
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 25)
+	checkRegister(t, &c, 0xF, 0)
+
+	c.Init()
+	c.v[0] = 1
+	c.v[1] = 255
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 1)
+	checkRegister(t, &c, 0xF, 1)
+
+	c.Init()
+	c.v[1] = 129
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 130)
+	checkRegister(t, &c, 0xF, 0)
+}
+
+func TestVXEqualsVXMinusVYBorrow(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0x8015, &c)
+	c.v[0] = 200
+	c.v[1] = 100
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 100)
+	checkRegister(t, &c, 0xF, 1)
+
+	c.Init()
+	c.v[0] = 2
+	c.v[1] = 250
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 8)
+	checkRegister(t, &c, 0xF, 0)
+}
+
+func TestVXEqualsVYMinusVXBorrow(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0x8017, &c)
+	c.v[0] = 51
+	c.v[1] = 60
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 9)
+	checkRegister(t, &c, 0xF, 1)
+
+	c.Init()
+	c.v[0] = 250
+	c.v[1] = 2
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 8)
+	checkRegister(t, &c, 0xF, 0)
+
+}
+
+func TestVXEqualsVYShiftRight(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0x8016, &c)
+	c.v[0] = 0
+	c.v[1] = 2
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 1)
+	checkRegister(t, &c, 0xF, 0)
+
+	c.Init()
+	c.v[0] = 0
+	c.v[1] = 9
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 4)
+	checkRegister(t, &c, 0xF, 1)
+
+}
+
+func TestVXEqualsVYShiftLeft(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0x801E, &c)
+	c.v[0] = 0
+	c.v[1] = 1
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 2)
+	checkRegister(t, &c, 1, 2)
+	checkRegister(t, &c, 0xF, 0)
+
+	c.Init()
+	c.v[0] = 0
+	c.v[1] = 0xFF
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkRegister(t, &c, 0, 254)
+	checkRegister(t, &c, 1, 254)
+	checkRegister(t, &c, 0xF, 1)
+}
+
+func TestSkipNextVXNotEqualVY(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0x9010, &c)
+	c.v[0] = 0
+	c.v[1] = 1
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+4)
+
+	c.Init()
+	c.v[0] = 5
+	c.v[1] = 5
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
 
 }
