@@ -14,7 +14,7 @@ const (
 
 // CPU basic Chip CPU
 type CPU struct {
-	keys   []bool
+	keys   [16]bool
 	memory [4096]byte
 	v      [16]byte
 	i      uint16
@@ -34,6 +34,11 @@ func (c *CPU) Init() {
 
 // ExecuteIteration executes a single iteration of the CPU
 func (c *CPU) ExecuteIteration() error {
+	// decrement delay timer (if != 0)
+	if c.dt > 0 {
+		c.dt--
+	}
+
 	// get the opcode
 	opcode := uint16(c.memory[c.pc])<<8 | uint16(c.memory[c.pc+1])
 

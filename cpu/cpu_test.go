@@ -15,7 +15,13 @@ func execute(t *testing.T, c *CPU) {
 
 func checkPC(t *testing.T, c *CPU, value uint16) {
 	if c.pc != value {
-		t.Errorf("Expected: %x got: %x", value, c.pc)
+		t.Errorf("Expected PC: %x, got PC: %x", value, c.pc)
+	}
+}
+
+func checkDT(t *testing.T, c *CPU, value byte) {
+	if c.dt != value {
+		t.Errorf("Expected DT: %x, got DT: %x", value, c.dt)
 	}
 }
 
@@ -52,7 +58,7 @@ func TestJumpToAddressPlusV0(t *testing.T) {
 	checkPC(t, &c, 0x0017)
 }
 
-func TestSkipNextEqualsSkip(t *testing.T) {
+func TestSkipNextVXEqualsKK(t *testing.T) {
 	c := CPU{}
 	c.Init()
 	setOpcode(0x3110, &c)
@@ -61,12 +67,8 @@ func TestSkipNextEqualsSkip(t *testing.T) {
 	execute(t, &c)
 
 	checkPC(t, &c, ProgramStartPosition+4)
-}
 
-func TestSkipNextEqualsNotSkip(t *testing.T) {
-	c := CPU{}
 	c.Init()
-	setOpcode(0x3110, &c)
 	c.v[1] = 15
 
 	execute(t, &c)
@@ -74,7 +76,7 @@ func TestSkipNextEqualsNotSkip(t *testing.T) {
 	checkPC(t, &c, ProgramStartPosition+2)
 }
 
-func TestSkipNextNotEqualsSkip(t *testing.T) {
+func TestSkipVXNotEqualsKK(t *testing.T) {
 	c := CPU{}
 	c.Init()
 	setOpcode(0x4203, &c)
@@ -83,20 +85,16 @@ func TestSkipNextNotEqualsSkip(t *testing.T) {
 	execute(t, &c)
 
 	checkPC(t, &c, ProgramStartPosition+4)
-}
 
-func TestSkipNextNotEqualsNotSkip(t *testing.T) {
-	c := CPU{}
 	c.Init()
 	setOpcode(0x4203, &c)
 	c.v[2] = 3
 
 	execute(t, &c)
-
 	checkPC(t, &c, ProgramStartPosition+2)
 }
 
-func TestSkipVXEqualsVYSkip(t *testing.T) {
+func TestSkipNextVXEqualsVY(t *testing.T) {
 	c := CPU{}
 	c.Init()
 	setOpcode(0x5120, &c)
@@ -114,6 +112,70 @@ func TestSkipVXEqualsVYNotSkip(t *testing.T) {
 	setOpcode(0x5340, &c)
 	c.v[3] = 64
 	c.v[4] = 128
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+}
+
+func TestSkipNextVXNotEqualVY(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0x9010, &c)
+	c.v[0] = 0
+	c.v[1] = 1
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+4)
+
+	c.Init()
+	c.v[0] = 5
+	c.v[1] = 5
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+
+}
+
+func TestSkipNextVXEqualsKeyPressed(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xE09E, &c)
+
+	c.v[0] = 0xF
+	c.keys[0xF] = true
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+4)
+
+	c.Init()
+	c.v[0] = 0xF
+	c.keys[0xF] = false
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+
+}
+
+func TestSkipNextVXNotEqualsKeyPressed(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xE0A1, &c)
+
+	c.v[0] = 0xF
+	c.keys[0xF] = false
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+4)
+
+	c.Init()
+	c.v[0] = 0xF
+	c.keys[0xF] = true
 
 	execute(t, &c)
 
@@ -144,7 +206,7 @@ func TestAddVXPlusKK(t *testing.T) {
 	checkRegister(t, &c, 7, 40)
 }
 
-func TestSetVXEqualsVY(t *testing.T) {
+func TestVXEqualsVY(t *testing.T) {
 	c := CPU{}
 	c.Init()
 	setOpcode(0x89A0, &c)
@@ -158,7 +220,7 @@ func TestSetVXEqualsVY(t *testing.T) {
 	checkRegister(t, &c, 9, 44)
 }
 
-func TestSetVXEqualsVXOrVY(t *testing.T) {
+func TestVXEqualsVXOrVY(t *testing.T) {
 	c := CPU{}
 	c.Init()
 	setOpcode(0x8011, &c)
@@ -171,7 +233,7 @@ func TestSetVXEqualsVXOrVY(t *testing.T) {
 	checkRegister(t, &c, 0, 3)
 }
 
-func TestSetVXEqualsVXAndVY(t *testing.T) {
+func TestVXEqualsVXAndVY(t *testing.T) {
 	c := CPU{}
 	c.Init()
 	setOpcode(0x8102, &c)
@@ -357,27 +419,6 @@ func TestVXEqualsVYShiftLeft(t *testing.T) {
 	checkRegister(t, &c, 0xF, 1)
 }
 
-func TestSkipNextVXNotEqualVY(t *testing.T) {
-	c := CPU{}
-	c.Init()
-	setOpcode(0x9010, &c)
-	c.v[0] = 0
-	c.v[1] = 1
-
-	execute(t, &c)
-
-	checkPC(t, &c, ProgramStartPosition+4)
-
-	c.Init()
-	c.v[0] = 5
-	c.v[1] = 5
-
-	execute(t, &c)
-
-	checkPC(t, &c, ProgramStartPosition+2)
-
-}
-
 func TestSetIToAddr(t *testing.T) {
 	c := CPU{}
 	c.Init()
@@ -385,5 +426,87 @@ func TestSetIToAddr(t *testing.T) {
 
 	execute(t, &c)
 
+	checkPC(t, &c, ProgramStartPosition+2)
 	checkI(t, &c, 0x000F)
+}
+
+func TestAddVXToI(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xA00F, &c)
+	c.v[0] = 4
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkI(t, &c, 0x000F)
+
+	setOpcode(0xF01E, &c)
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+4)
+	checkI(t, &c, 0x0013)
+}
+
+func TestVXEqualsRandomNumberWithMask(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xC0FF, &c)
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	if c.v[0] < 0 || c.v[0] >= 255 {
+		t.Errorf("Expected v[0] range [0,256), got: %d", c.v[0])
+	}
+
+	c.Init()
+	setOpcode(0xC0FE, &c)
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	if c.v[0] < 0 || c.v[0] >= 255 || c.v[0]%2 == 1 {
+		t.Errorf("Expected v[0] range [0,256) and even, got: %d", c.v[0])
+	}
+}
+
+func TestSetDTToVX(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xF015, &c)
+
+	c.v[0] = 8
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkDT(t, &c, 8)
+
+	// just run any command to get timer going
+	setOpcode(0x6100, &c)
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+4)
+	checkDT(t, &c, 7)
+}
+
+func TestSetVXToDT(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xF015, &c)
+
+	c.v[0] = 8
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkDT(t, &c, 8)
+
+	setOpcode(0xF107, &c)
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+4)
+	checkRegister(t, &c, 1, 7)
 }
