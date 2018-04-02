@@ -216,12 +216,21 @@ func (c *CPU) ExecuteIteration() error {
 		case 0x0029:
 			// TODO sets i to the location of the sprite for the character in v[x]
 		case 0x0033:
-			// TODO store BCD representation of v[x] in memory locations i, i+1, and i+2
+			// store BCD representation of v[x] in i, i+1, i+2
+			h := byte((uint16(c.v[x])%(100*10))-(uint16(c.v[x])%100)) / 100
+			t := ((c.v[x] % (10 * 10)) - (c.v[x] % 10)) / 10
+			d := ((c.v[x] % 10) - (c.v[x] % 1))
+
+			c.memory[c.i] = h
+			c.memory[c.i+1] = t
+			c.memory[c.i+2] = d
+
+			c.pc += 2
 		case 0x0055:
 			// stores v[0] to v[x] (including v[x]) in memory starting at address i
 			var xx uint16
 			for xx = 0; xx <= x; xx++ {
-				c.memory[xx] = c.v[xx]
+				c.memory[c.i] = c.v[xx]
 				c.i++
 			}
 			c.pc += 2

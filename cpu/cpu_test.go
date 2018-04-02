@@ -1,6 +1,8 @@
 package cpu
 
-import "testing"
+import (
+	"testing"
+)
 
 func setOpcode(opcode int, c *CPU) {
 	c.memory[c.pc] = byte(opcode >> 8)
@@ -34,6 +36,12 @@ func checkRegister(t *testing.T, c *CPU, reg int, value byte) {
 func checkI(t *testing.T, c *CPU, value uint16) {
 	if c.i != value {
 		t.Errorf("Expected i: %x, got: %x", value, c.i)
+	}
+}
+
+func checkMemory(t *testing.T, c *CPU, pos int, value byte) {
+	if c.memory[pos] != value {
+		t.Errorf("Expected mem[%x]: %d, got mem[%x]: %d", pos, value, pos, c.memory[pos])
 	}
 }
 
@@ -509,4 +517,79 @@ func TestSetVXToDT(t *testing.T) {
 
 	checkPC(t, &c, ProgramStartPosition+4)
 	checkRegister(t, &c, 1, 7)
+}
+
+func TestStoreV0ToVXInMemoryFromI(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xFF55, &c)
+
+	for i := 0; i <= 0xF; i++ {
+		c.v[i] = byte(i)
+	}
+	c.i = 0
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	for i := 0; i <= 0xF; i++ {
+		checkMemory(t, &c, i, c.v[i])
+	}
+	checkI(t, &c, 16)
+}
+
+func TestStoreMemoryFromIInV0ToVX(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xFF65, &c)
+
+	for i := 0; i <= 0xF; i++ {
+		c.memory[200+i] = byte(i)
+	}
+
+	c.i = 200
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	for i := 0; i <= 0xF; i++ {
+		checkRegister(t, &c, i, byte(i))
+	}
+	checkI(t, &c, 200+16)
+}
+
+func TestStoreBCDFromVXInI(t *testing.T) {
+	c := CPU{}
+	c.Init()
+	setOpcode(0xF033, &c)
+
+	c.v[0] = 128
+	c.i = 10
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+2)
+	checkMemory(t, &c, 10, 1)
+	checkMemory(t, &c, 11, 2)
+	checkMemory(t, &c, 12, 8)
+
+	setOpcode(0xF033, &c)
+	c.v[0] = 47
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+4)
+	checkMemory(t, &c, 10, 0)
+	checkMemory(t, &c, 11, 4)
+	checkMemory(t, &c, 12, 7)
+
+	setOpcode(0xF033, &c)
+	c.v[0] = 4
+
+	execute(t, &c)
+
+	checkPC(t, &c, ProgramStartPosition+6)
+	checkMemory(t, &c, 10, 0)
+	checkMemory(t, &c, 11, 0)
+	checkMemory(t, &c, 12, 4)
 }
